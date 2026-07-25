@@ -1,0 +1,51 @@
+# Documentação completa: https://docs.frigate.video/configuration/
+
+mqtt:
+  enabled: true
+  host: mosquitto
+  port: 1883
+  user: frigate
+  password: "{FRIGATE_MQTT_PASSWORD}"
+
+# Detector CPU funciona out-of-the-box mas é lento (poucos FPS de análise).
+# Se notar detecção de pessoas/objetos travando, considere um Coral USB
+# (veja README) e troque este bloco pelo detector "edgetpu".
+detectors:
+  cpu1:
+    type: cpu
+
+# go2rtc puxa o stream RTSP da câmera UMA vez e o distribui para o Frigate,
+# para o Home Assistant e para visualização ao vivo (WebRTC), evitando abrir
+# várias conexões simultâneas na câmera Tapo.
+go2rtc:
+  streams:
+    tapo_frontdoor:
+      - "rtsp://{FRIGATE_TAPO_USER}:{FRIGATE_TAPO_PASSWORD}@192.168.1.50:554/stream1"
+
+cameras:
+  # Exemplo de câmera Tapo. Duplique este bloco por câmera, ajustando o IP e
+  # o nome. Veja no README como habilitar a "Conta de Câmera" (RTSP) no app
+  # Tapo — isso evita depender da integração cloud/HACS que não funcionou.
+  tapo_frontdoor:
+    ffmpeg:
+      inputs:
+        - path: rtsp://127.0.0.1:8554/tapo_frontdoor
+          roles:
+            - record
+        - path: "rtsp://{FRIGATE_TAPO_USER}:{FRIGATE_TAPO_PASSWORD}@192.168.1.50:554/stream2"
+          roles:
+            - detect
+    detect:
+      enabled: true
+      width: 640
+      height: 360
+      fps: 5
+    record:
+      enabled: true
+      retain:
+        days: 7
+        mode: motion
+    snapshots:
+      enabled: true
+      retain:
+        default: 14

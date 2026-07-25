@@ -1,0 +1,23 @@
+name: myhome
+
+# O Home Assistant já roda como um container separado e pré-existente no NAS
+# (fora deste projeto) — este compose sobe só a nossa camada própria
+# (myhome-app), que fala com esse HA via REST/WebSocket (ver HA_URL no .env).
+services:
+  myhome-app:
+    build:
+      context: ../app
+    container_name: myhome-app
+    restart: unless-stopped
+    # UID:GID do usuário dono de ./myhome-app/data no host (rode `id <usuario>`
+    # no NAS). Sem isso o container (uid 1001, ver Dockerfile) não consegue
+    # gravar no bind mount e a API retorna 500 ao salvar câmeras/planta/etc.
+    user: "1000:100"
+    ports:
+      - "3001:3000"
+    volumes:
+      - ./myhome-app/data:/app/data
+    environment:
+      - TZ=${TZ:-America/Sao_Paulo}
+      - HA_URL=${HA_URL}
+      - HA_TOKEN=${HA_TOKEN}
