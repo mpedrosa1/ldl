@@ -48,6 +48,14 @@ function FullscreenIcon() {
   );
 }
 
+function ExitFullscreenIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M10 4H8v4H4v2h6V4zm4 0v6h6V8h-4V4h-2zM4 14v2h4v4h2v-6H4zm10 0v6h2v-4h4v-2h-6z" />
+    </svg>
+  );
+}
+
 /** Player de vídeo ao vivo (fMP4) das câmeras Tapo, com controles próprios —
  * volume, qualidade (HD/SD) e tela cheia. Sem play/pause: o stream é sempre
  * "ao vivo", pausar não faz sentido conceitual e a barra nativa do navegador
@@ -58,8 +66,19 @@ export function TapoVideoPlayer({ src }: { src: string }) {
   const [muted, setMuted] = useState(false);
   const [volume, setVolume] = useState(1);
   const [quality, setQuality] = useState<"sd" | "hd">("sd");
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   const videoSrc = `${src}${src.includes("?") ? "&" : "?"}quality=${quality}`;
+
+  // O estado precisa vir do evento, não do clique: sair com ESC (ou pelo
+  // controle do próprio navegador) também tem que atualizar o botão.
+  useEffect(() => {
+    function syncFullscreen() {
+      setIsFullscreen(document.fullscreenElement === containerRef.current);
+    }
+    document.addEventListener("fullscreenchange", syncFullscreen);
+    return () => document.removeEventListener("fullscreenchange", syncFullscreen);
+  }, []);
 
   useEffect(() => {
     // O atributo HTML `autoPlay` nem sempre dispara com áudio fora do gesto
@@ -90,8 +109,12 @@ export function TapoVideoPlayer({ src }: { src: string }) {
     setQuality((q) => (q === "sd" ? "hd" : "sd"));
   }
 
-  function enterFullscreen() {
-    containerRef.current?.requestFullscreen?.();
+  function toggleFullscreen() {
+    if (document.fullscreenElement) {
+      document.exitFullscreen?.();
+    } else {
+      containerRef.current?.requestFullscreen?.();
+    }
   }
 
   return (
@@ -144,8 +167,13 @@ export function TapoVideoPlayer({ src }: { src: string }) {
         >
           {quality === "hd" ? "HD" : "SD"}
         </button>
-        <button type="button" onClick={enterFullscreen} style={buttonStyle} aria-label="Tela cheia">
-          <FullscreenIcon />
+        <button
+          type="button"
+          onClick={toggleFullscreen}
+          style={buttonStyle}
+          aria-label={isFullscreen ? "Sair da tela cheia" : "Tela cheia"}
+        >
+          {isFullscreen ? <ExitFullscreenIcon /> : <FullscreenIcon />}
         </button>
       </div>
     </div>

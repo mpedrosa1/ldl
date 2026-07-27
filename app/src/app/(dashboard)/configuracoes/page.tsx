@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useFloorPlan } from "@/hooks/useFloorPlan";
 import { useTapoCameras } from "@/hooks/useTapoCameras";
 import { useCustomDevices } from "@/hooks/useCustomDevices";
+import { useAutomations } from "@/hooks/useAutomations";
 import { ACCENT, BORDER, CARD_BG, TEXT_MUTED_3 } from "@/lib/theme";
 
 function SettingsCard({
@@ -54,6 +55,7 @@ export default function ConfiguracoesPage() {
   const { doc, loaded: floorPlanLoaded } = useFloorPlan();
   const { cameras } = useTapoCameras();
   const { devices: customDevices } = useCustomDevices();
+  const { automations } = useAutomations();
 
   return (
     <div>
@@ -81,8 +83,16 @@ export default function ConfiguracoesPage() {
         />
 
         <SettingsCard
+          title="Automações"
+          description="Monte automações encaixando blocos coloridos, no estilo do Scratch: um bloco QUANDO define o que dispara, e os blocos abaixo executam em ordem — com se/senão, repetições, esperas e variáveis. Roda tudo aqui no LDL, sem depender das automações do Home Assistant."
+          stats={`${automations.length} automação${automations.length === 1 ? "" : "ões"} criada${automations.length === 1 ? "" : "s"}`}
+          href="/configuracoes/automacoes"
+          cta="Gerenciar automações"
+        />
+
+        <SettingsCard
           title="Dispositivos"
-          description="Monte os cards que aparecem na página Dispositivos, combinando uma ou mais entidades do Home Assistant num só card — com sugestões prontas a partir dos dispositivos que já existem lá no HA."
+          description="Monte os cards que aparecem na página Cômodos, combinando uma ou mais entidades do Home Assistant num só card — com sugestões prontas a partir dos dispositivos que já existem lá no HA. A Área escolhida em cada card define em qual aba de cômodo ele aparece."
           stats={`${customDevices.length} dispositivo${customDevices.length === 1 ? "" : "s"} criado${customDevices.length === 1 ? "" : "s"}`}
           href="/configuracoes/entidades"
           cta="Gerenciar dispositivos"

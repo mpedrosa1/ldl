@@ -1,9 +1,20 @@
 "use client";
 
-import type { HassEntity } from "home-assistant-js-websocket";
-import type { Wall, Opening, PlacedDevice, FurnitureItem, FloorArea, DeviceIconType } from "@/lib/floorplan/types";
-import { DEVICE_ICON_OPTIONS, iconOptionFor } from "@/lib/floorplan/icons";
-import { friendlyName } from "@/lib/ha/devices";
+import { useMemo } from "react";
+import type {
+  Wall,
+  Opening,
+  PlacedDevice,
+  FurnitureItem,
+  FloorArea,
+  DeviceIconType,
+} from "@/lib/floorplan/types";
+import { DEVICE_ICON_OPTIONS } from "@/lib/floorplan/icons";
+import { useCustomDevices, type CustomDevice } from "@/hooks/useCustomDevices";
+import { useHaAreas } from "@/hooks/useHaAreas";
+import { useHaEntities } from "@/hooks/useHaEntities";
+import { useTapoCameras } from "@/hooks/useTapoCameras";
+import { cameraOptions } from "@/lib/cameras/list";
 import { resizeWallLength, wallLength } from "@/lib/floorplan/geometry";
 import { FLOOR_PRESETS } from "@/lib/floorplan/floorPresets";
 import { ACCENT, BORDER, CARD_BG, DANGER, INPUT_BG, TEXT_MUTED_3 } from "@/lib/theme";
@@ -54,7 +65,6 @@ export function PropertiesPanel({
   device,
   furniture,
   floor,
-  entities,
   onUpdateWall,
   onUpdateOpening,
   onUpdateDevice,
@@ -68,7 +78,6 @@ export function PropertiesPanel({
   device?: PlacedDevice;
   furniture?: FurnitureItem;
   floor?: FloorArea;
-  entities: HassEntity[];
   onUpdateWall: (patch: Partial<Wall>) => void;
   onUpdateOpening: (patch: Partial<Opening>) => void;
   onUpdateDevice: (patch: Partial<PlacedDevice>) => void;
@@ -77,6 +86,16 @@ export function PropertiesPanel({
   onDelete: () => void;
   onClose: () => void;
 }) {
+  const { devices: customDevices } = useCustomDevices();
+  const { areas, entityMeta } = useHaAreas();
+  const { entities } = useHaEntities();
+  const { cameras: tapoCameras } = useTapoCameras();
+  const areaName = useMemo(() => new Map(areas.map((a) => [a.area_id, a.name])), [areas]);
+  const cameras = useMemo(
+    () => cameraOptions(customDevices, entities, tapoCameras, entityMeta),
+    [customDevices, entities, tapoCameras, entityMeta],
+  );
+
   return (
     <div style={panelStyle}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -220,19 +239,54 @@ export function PropertiesPanel({
             </div>
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-            <label style={fieldLabel}>Entidade do HA (opcional)</label>
+            <label style={fieldLabel}>Dispositivo (opcional)</label>
             <select
               style={inputStyle}
-              value={device.entityId ?? ""}
-              onChange={(e) => onUpdateDevice({ entityId: e.target.value || undefined })}
+              value={device.cameraKey ?? device.deviceId ?? ""}
+              onChange={(e) => {
+                // Os três vínculos são mutuamente exclusivos: escolher um
+                // precisa limpar os outros, senão o ícone responderia pelo
+                // vínculo antigo que ficou para trás.
+                const value = e.target.value;
+                const isCamera = value.startsWith("ha:") || value.startsWith("tapo:");
+                onUpdateDevice({
+                  deviceId: isCamera || !value ? undefined : value,
+                  cameraKey: isCamera ? value : undefined,
+                  entityId: undefined,
+                });
+              }}
             >
-              <option value="">Nenhuma (só visual)</option>
-              {entityOptionsFor(device.icon, entities).map((e) => (
-                <option key={e.entity_id} value={e.entity_id}>
-                  {friendlyName(e)}
-                </option>
-              ))}
+              <option value="">Nenhum (só visual)</option>
+              {customDevices.length > 0 && (
+                <optgroup label="Dispositivos">
+                  {customDevices.map((d) => (
+                    <option key={d.id} value={d.id}>
+                      {customDeviceLabel(d, areaName)}
+                    </option>
+                  ))}
+                </optgroup>
+              )}
+              {cameras.length > 0 && (
+                <optgroup label="Câmeras">
+                  {cameras.map((c) => (
+                    <option key={c.key} value={c.key}>
+                      {c.name}
+                    </option>
+                  ))}
+                </optgroup>
+              )}
             </select>
+            {device.entityId && !device.deviceId && (
+              <div style={{ fontSize: 11, color: TEXT_MUTED_3 }}>
+                Este ícone ainda usa o vínculo antigo direto na entidade{" "}
+                <strong>{device.entityId}</strong>. Escolha um dispositivo acima para atualizar.
+              </div>
+            )}
+            {customDevices.length === 0 && cameras.length === 0 && (
+              <div style={{ fontSize: 11, color: TEXT_MUTED_3 }}>
+                Nenhum dispositivo criado ainda — monte um em Configurações → Dispositivos.
+              </div>
+            )}
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
             <label style={fieldLabel}>Imagem (opcional, substitui o emoji)</label>
@@ -404,10 +458,9 @@ export function PropertiesPanel({
   );
 }
 
-function entityOptionsFor(icon: DeviceIconType, entities: HassEntity[]): HassEntity[] {
-  const domains = iconOptionFor(icon).suggestedDomains;
-  const filtered = domains
-    ? entities.filter((e) => domains.includes(e.entity_id.split(".")[0]))
-    : entities;
-  return filtered.sort((a, b) => friendlyName(a).localeCompare(friendlyName(b)));
+/** Vários dispositivos podem ter o mesmo nome (é comum ter uma "Luz" por
+ * cômodo), então a área entra no rótulo para dar para diferenciar. */
+function customDeviceLabel(device: CustomDevice, areaName: Map<string, string>): string {
+  const area = device.areaId ? areaName.get(device.areaId) : undefined;
+  return area ? `${device.name} — ${area}` : device.name;
 }

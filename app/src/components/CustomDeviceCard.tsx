@@ -5,7 +5,12 @@ import type { HassEntity } from "home-assistant-js-websocket";
 import type { CustomDevice } from "@/hooks/useCustomDevices";
 import { useHaEntities, callService } from "@/hooks/useHaEntities";
 import { augmentDevice, friendlyName, domainOf } from "@/lib/ha/devices";
-import { useLightColorBrightness, lightSupportsColor, lightSupportsBrightness } from "@/hooks/useLightColorBrightness";
+import {
+  useLightColorBrightness,
+  lightSupportsColor,
+  lightSupportsBrightness,
+  lightSupportsColorTemp,
+} from "@/hooks/useLightColorBrightness";
 import { EntityControls, ToggleSwitch } from "@/components/DeviceCard";
 import { LightColorBrightnessControls } from "@/components/LightColorBrightnessControls";
 import { BORDER, BORDER_STRONG, CARD_BG, DANGER, TEXT_DIMMER, TEXT_MUTED_4 } from "@/lib/theme";
@@ -32,29 +37,40 @@ function SharedLightRow({ lights }: { lights: HassEntity[] }) {
   const entityIds = lights.map((l) => l.entity_id);
   const anyColor = lights.some(lightSupportsColor);
   const anyBrightness = lights.some(lightSupportsBrightness);
-  const { colorHex, brightnessPct, setColor, setBrightness } = useLightColorBrightness(entityIds, lights[0]);
+  const anyColorTemp = lights.some(lightSupportsColorTemp);
+  const { colorHex, brightnessPct, kelvin, kelvinRange, setColor, setBrightness, setColorTemp } =
+    useLightColorBrightness(entityIds, lights[0]);
   return (
     <LightColorBrightnessControls
       showColor={anyColor}
       showBrightness={anyBrightness}
+      showColorTemp={anyColorTemp}
       colorHex={colorHex}
       brightnessPct={brightnessPct}
+      kelvin={kelvin}
+      kelvinRange={kelvinRange}
       onColorChange={setColor}
       onBrightnessChange={setBrightness}
+      onColorTempChange={setColorTemp}
     />
   );
 }
 
 function SingleLightRow({ entity }: { entity: HassEntity }) {
-  const { colorHex, brightnessPct, setColor, setBrightness } = useLightColorBrightness([entity.entity_id], entity);
+  const { colorHex, brightnessPct, kelvin, kelvinRange, setColor, setBrightness, setColorTemp } =
+    useLightColorBrightness([entity.entity_id], entity);
   return (
     <LightColorBrightnessControls
       showColor={lightSupportsColor(entity)}
       showBrightness={lightSupportsBrightness(entity)}
+      showColorTemp={lightSupportsColorTemp(entity)}
       colorHex={colorHex}
       brightnessPct={brightnessPct}
+      kelvin={kelvin}
+      kelvinRange={kelvinRange}
       onColorChange={setColor}
       onBrightnessChange={setBrightness}
+      onColorTempChange={setColorTemp}
     />
   );
 }

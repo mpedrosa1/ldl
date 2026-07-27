@@ -5,7 +5,12 @@ import { useRouter } from "next/navigation";
 import type { AugmentedDevice } from "@/lib/ha/devices";
 import { friendlyName, weatherConditionLabel, WEATHER_CONDITION_EMOJI, HVAC_ACTION_LABELS } from "@/lib/ha/devices";
 import { callService } from "@/hooks/useHaEntities";
-import { useLightColorBrightness, lightSupportsColor, lightSupportsBrightness } from "@/hooks/useLightColorBrightness";
+import {
+  useLightColorBrightness,
+  lightSupportsColor,
+  lightSupportsBrightness,
+  lightSupportsColorTemp,
+} from "@/hooks/useLightColorBrightness";
 import { WeatherForecastModal } from "@/components/WeatherForecastModal";
 import { LightColorBrightnessControls } from "@/components/LightColorBrightnessControls";
 import { NumberEntityControl } from "@/components/NumberEntityControl";
@@ -115,10 +120,8 @@ export function EntityControls({ device }: { device: AugmentedDevice }) {
     callService("media_player", "media_play_pause", entity.entity_id);
   }
 
-  const { colorHex, brightnessPct, setColor, setBrightness } = useLightColorBrightness(
-    [entity.entity_id],
-    entity,
-  );
+  const { colorHex, brightnessPct, kelvin, kelvinRange, setColor, setBrightness, setColorTemp } =
+    useLightColorBrightness([entity.entity_id], entity);
 
   return (
     <>
@@ -134,10 +137,14 @@ export function EntityControls({ device }: { device: AugmentedDevice }) {
             <LightColorBrightnessControls
               showColor={lightSupportsColor(entity)}
               showBrightness={lightSupportsBrightness(entity)}
+              showColorTemp={lightSupportsColorTemp(entity)}
               colorHex={colorHex}
               brightnessPct={brightnessPct}
+              kelvin={kelvin}
+              kelvinRange={kelvinRange}
               onColorChange={setColor}
               onBrightnessChange={setBrightness}
+              onColorTempChange={setColorTemp}
             />
           )}
         </div>

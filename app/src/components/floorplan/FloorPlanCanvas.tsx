@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Stage, Layer, Line, Rect, Circle, Group, Text } from "react-konva";
 import type Konva from "konva";
 import type { HassEntity } from "home-assistant-js-websocket";
@@ -22,6 +22,11 @@ import {
   projectPointToWall,
 } from "@/lib/floorplan/geometry";
 import { DEFAULT_FLOOR_FILL } from "@/lib/floorplan/floorPresets";
+import { resolveBinding } from "@/lib/floorplan/deviceBinding";
+import { useCustomDevices } from "@/hooks/useCustomDevices";
+import { useTapoCameras } from "@/hooks/useTapoCameras";
+import { useHaAreas } from "@/hooks/useHaAreas";
+import { cameraOptions } from "@/lib/cameras/list";
 import { ACCENT } from "@/lib/theme";
 import { DEFAULT_LAYER_STATE, layerForDevice, type LayerState } from "@/lib/floorplan/layers";
 import { PropertiesPanel } from "./PropertiesPanel";
@@ -64,11 +69,6 @@ const BG_COLOR = "oklch(0.23 0.012 50)";
 const MIN_SCALE = 0.2;
 const MAX_SCALE = 4;
 
-function entityFor(entities: HassEntity[], entityId?: string): HassEntity | undefined {
-  if (!entityId) return undefined;
-  return entities.find((e) => e.entity_id === entityId);
-}
-
 function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
 }
@@ -83,6 +83,13 @@ export function FloorPlanCanvas({
   showRulers = false,
   layers = DEFAULT_LAYER_STATE,
 }: Props) {
+  const { devices: customDevices } = useCustomDevices();
+  const { cameras: tapoCameras } = useTapoCameras();
+  const { entityMeta } = useHaAreas();
+  const cameras = useMemo(
+    () => cameraOptions(customDevices, entities, tapoCameras, entityMeta),
+    [customDevices, entities, tapoCameras, entityMeta],
+  );
   const [selection, setSelection] = useState<Selection>(null);
   const [drawingWall, setDrawingWall] = useState<Wall | null>(null);
   const [drawingFloor, setDrawingFloor] = useState<DrawingRect | null>(null);
@@ -700,7 +707,7 @@ export function FloorPlanCanvas({
                 <DeviceNode
                   key={device.id}
                   device={device}
-                  entity={entityFor(entities, device.entityId)}
+                  binding={resolveBinding(device, customDevices, entities, cameras)}
                   selected={selection?.kind === "device" && selection.id === device.id}
                   readOnly={readOnly || deviceLayer.locked}
                   draggable={!readOnly && mode === "select" && !deviceLayer.locked}
@@ -739,7 +746,6 @@ export function FloorPlanCanvas({
           device={selectedDevice}
           furniture={selectedFurniture}
           floor={selectedFloor}
-          entities={entities}
           onUpdateWall={(patch) => selectedWall && updateWall(selectedWall.id, patch)}
           onUpdateOpening={(patch) => selectedOpening && updateOpening(selectedOpening.id, patch)}
           onUpdateDevice={(patch) => selectedDevice && updateDevice(selectedDevice.id, patch)}

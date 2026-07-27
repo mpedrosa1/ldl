@@ -46,6 +46,16 @@ export interface PlacedDevice {
   /** Custom image URL (e.g. from the icon library) overriding the emoji. */
   imageUrl?: string;
   label: string;
+  /** Dispositivo criado em Configurações → Dispositivos (o mesmo que aparece na
+   * página Cômodos). É o vínculo usado hoje. */
+  deviceId?: string;
+  /** Câmera da página Câmeras, no formato `tapo:<id>` ou `ha:<entity_id>`.
+   * Câmeras não são dispositivos compostos — as Tapo nem entidade do HA têm —,
+   * por isso têm um vínculo próprio. */
+  cameraKey?: string;
+  /** Vínculo antigo, direto numa entidade do HA. Mantido só para plantas
+   * salvas antes de existirem os dispositivos compostos continuarem
+   * funcionando; o editor não oferece mais essa opção. */
   entityId?: string;
 }
 

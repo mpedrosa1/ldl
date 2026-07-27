@@ -15,7 +15,7 @@ const NAV_ITEMS = [
   { href: "/", label: "Início" },
   { href: "/mapa", label: "Mapa" },
   { href: "/cameras", label: "Câmeras" },
-  { href: "/dispositivos", label: "Dispositivos" },
+  { href: "/comodos", label: "Cômodos" },
   { href: "/configuracoes", label: "Configurações" },
 ];
 

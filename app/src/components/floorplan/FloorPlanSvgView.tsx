@@ -6,18 +6,17 @@ import type { HassEntity } from "home-assistant-js-websocket";
 import type { FloorPlanDoc, PlacedDevice, Wall } from "@/lib/floorplan/types";
 import { computeDocBounds, pointOnWall, wallAngleDeg, DEFAULT_DEVICE_SIZE } from "@/lib/floorplan/geometry";
 import { iconOptionFor } from "@/lib/floorplan/icons";
-import { augmentDevice, friendlyName } from "@/lib/ha/devices";
 import { callService } from "@/hooks/useHaEntities";
-import { ACCENT, CARD_BG, MUTED } from "@/lib/theme";
+import { useCustomDevices } from "@/hooks/useCustomDevices";
+import { useTapoCameras } from "@/hooks/useTapoCameras";
+import { useHaAreas } from "@/hooks/useHaAreas";
+import { cameraOptions } from "@/lib/cameras/list";
+import { resolveBinding } from "@/lib/floorplan/deviceBinding";
+import { ACCENT, ACCENT2, CARD_BG, DANGER, MUTED } from "@/lib/theme";
 
 const WALL_COLOR = "oklch(0.55 0.01 50)";
 
-function entityFor(entities: HassEntity[], entityId?: string): HassEntity | undefined {
-  if (!entityId) return undefined;
-  return entities.find((e) => e.entity_id === entityId);
-}
-
-/** Read-only, static SVG rendering of a floor plan — no dark editor canvas, no grid, sized to fit its content. Devices bound to a real HA entity stay clickable. */
+/** Read-only, static SVG rendering of a floor plan — no dark editor canvas, no grid, sized to fit its content. Ícones vinculados a um dispositivo continuam clicáveis. */
 export function FloorPlanSvgView({
   doc,
   entities,
@@ -26,16 +25,26 @@ export function FloorPlanSvgView({
   entities: HassEntity[];
 }) {
   const router = useRouter();
+  const { devices: customDevices } = useCustomDevices();
+  const { cameras: tapoCameras } = useTapoCameras();
+  const { entityMeta } = useHaAreas();
+  const cameras = useMemo(
+    () => cameraOptions(customDevices, entities, tapoCameras, entityMeta),
+    [customDevices, entities, tapoCameras, entityMeta],
+  );
   const bounds = useMemo(() => computeDocBounds(doc), [doc]);
 
   function handleDeviceClick(device: PlacedDevice) {
-    if (!device.entityId) return;
-    const domain = device.entityId.split(".")[0];
-    if (domain === "camera") {
-      router.push("/cameras");
+    const binding = resolveBinding(device, customDevices, entities, cameras);
+    if (binding.cameraKey) {
+      // Leva direto para a câmera daquele ícone, já aberta.
+      router.push(`/cameras?camera=${encodeURIComponent(binding.cameraKey)}`);
       return;
     }
-    callService("homeassistant", "toggle", device.entityId);
+    if (binding.entityIds.length === 0) return;
+    // turn_on/turn_off em vez de toggle, para todos os membros do dispositivo
+    // acabarem no mesmo estado — igual ao card em Cômodos.
+    callService("homeassistant", binding.isOn ? "turn_off" : "turn_on", binding.entityIds);
   }
 
   return (
@@ -141,12 +150,19 @@ export function FloorPlanSvgView({
       {/* devices */}
       {doc.devices.map((device) => {
         const option = iconOptionFor(device.icon);
-        const entity = entityFor(entities, device.entityId);
-        const augmented = entity ? augmentDevice(entity) : null;
-        const statusColor = device.entityId ? ((augmented?.isOn ?? false) ? ACCENT : MUTED) : "oklch(0.4 0.015 50)";
+        const binding = resolveBinding(device, customDevices, entities, cameras);
+        const statusColor = binding.cameraKey
+          ? ACCENT2
+          : binding.entityIds.length === 0
+            ? "oklch(0.4 0.015 50)"
+            : binding.allUnavailable
+              ? DANGER
+              : binding.isOn
+                ? ACCENT
+                : MUTED;
         const w = device.width ?? DEFAULT_DEVICE_SIZE;
         const h = device.height ?? DEFAULT_DEVICE_SIZE;
-        const clickable = Boolean(device.entityId);
+        const clickable = binding.interactive;
 
         return (
           <g
@@ -155,7 +171,7 @@ export function FloorPlanSvgView({
             onClick={() => handleDeviceClick(device)}
             style={{ cursor: clickable ? "pointer" : "default" }}
           >
-            {entity && <title>{friendlyName(entity)}</title>}
+            {binding.name && <title>{binding.name}</title>}
             <g transform={`rotate(${device.rotation})`}>
               {device.imageUrl ? (
                 <>

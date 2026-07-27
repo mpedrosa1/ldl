@@ -1,16 +1,15 @@
 import { Circle, Group, Image, Text } from "react-konva";
 import type Konva from "konva";
-import type { HassEntity } from "home-assistant-js-websocket";
 import type { PlacedDevice } from "@/lib/floorplan/types";
+import type { DeviceBinding } from "@/lib/floorplan/deviceBinding";
 import { iconOptionFor } from "@/lib/floorplan/icons";
 import { cmToPx, pxToCm, snapCm, DEFAULT_DEVICE_SIZE, MIN_ITEM_SIZE_CM } from "@/lib/floorplan/geometry";
-import { augmentDevice } from "@/lib/ha/devices";
 import { useHtmlImage } from "@/hooks/useHtmlImage";
-import { ACCENT, MUTED } from "@/lib/theme";
+import { ACCENT, ACCENT2, DANGER, MUTED } from "@/lib/theme";
 
 export function DeviceNode({
   device,
-  entity,
+  binding,
   selected,
   readOnly,
   draggable,
@@ -20,7 +19,7 @@ export function DeviceNode({
   onResize,
 }: {
   device: PlacedDevice;
-  entity?: HassEntity;
+  binding: DeviceBinding;
   selected: boolean;
   readOnly: boolean;
   draggable: boolean;
@@ -31,8 +30,15 @@ export function DeviceNode({
 }) {
   const img = useHtmlImage(device.imageUrl);
   const option = iconOptionFor(device.icon);
-  const augmented = entity ? augmentDevice(entity) : null;
-  const statusColor = device.entityId ? ((augmented?.isOn ?? false) ? ACCENT : MUTED) : "oklch(0.4 0.015 50)";
+  const statusColor = binding.cameraKey
+    ? ACCENT2
+    : binding.entityIds.length === 0
+      ? "oklch(0.4 0.015 50)"
+      : binding.allUnavailable
+        ? DANGER
+        : binding.isOn
+          ? ACCENT
+          : MUTED;
 
   const widthCm = device.width ?? DEFAULT_DEVICE_SIZE;
   const heightCm = device.height ?? DEFAULT_DEVICE_SIZE;

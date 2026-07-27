@@ -1,12 +1,15 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { Suspense, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useHaEntities } from "@/hooks/useHaEntities";
 import { useHaAreas } from "@/hooks/useHaAreas";
 import { useTapoCameras } from "@/hooks/useTapoCameras";
 import { useCustomDevices } from "@/hooks/useCustomDevices";
-import { isVisibleDevice, friendlyName, domainOf } from "@/lib/ha/devices";
+import { isVisibleDevice, friendlyName } from "@/lib/ha/devices";
+import { visibleHaCameraIds } from "@/lib/cameras/list";
 import { CameraTile } from "@/components/CameraTile";
+import { TapoCameraTile } from "@/components/TapoCameraTile";
 import { FilterChips } from "@/components/FilterChips";
 import { TapoVideoPlayer } from "@/components/TapoVideoPlayer";
 
@@ -17,30 +20,36 @@ interface UnifiedCamera {
   streamUrl: string;
   areaId?: string;
   source: "ha" | "tapo";
+  tapoId?: string;
 }
 
+/** `useSearchParams` força renderização no cliente até o Suspense mais próximo;
+ * o boundary mantém o resto da rota prerenderizada. */
 export default function CamerasPage() {
+  return (
+    <Suspense fallback={null}>
+      <CamerasView />
+    </Suspense>
+  );
+}
+
+function CamerasView() {
+  const searchParams = useSearchParams();
   const { entities } = useHaEntities();
   const { areas, entityArea, entityMeta } = useHaAreas();
   const { cameras: tapoCameras } = useTapoCameras();
   const { devices: customDevices } = useCustomDevices();
   const [filter, setFilter] = useState("todos");
-  const [expandedKey, setExpandedKey] = useState<string | null>(null);
+  // Já abre a câmera pedida na URL — é assim que um ícone de câmera da planta
+  // baixa leva direto para a câmera dele, e não só para a lista.
+  const [expandedKey, setExpandedKey] = useState<string | null>(() => searchParams.get("camera"));
 
   // Câmeras do HA só aparecem aqui se foram marcadas como "Mostrar em Câmeras"
   // ao serem adicionadas a um dispositivo em Configurações — não existe mais
-  // uma tela separada de "entidades habilitadas".
-  const visibleCameraEntityIds = useMemo(() => {
-    const ids = new Set<string>();
-    for (const device of customDevices) {
-      for (const entityId of device.entityIds) {
-        if (domainOf(entityId) === "camera" && device.cameraVisibility?.[entityId]) {
-          ids.add(entityId);
-        }
-      }
-    }
-    return ids;
-  }, [customDevices]);
+  // uma tela separada de "entidades habilitadas". A regra mora em
+  // `visibleHaCameraIds` para o editor de planta baixa oferecer exatamente as
+  // mesmas câmeras que esta página mostra.
+  const visibleCameraEntityIds = useMemo(() => visibleHaCameraIds(customDevices), [customDevices]);
 
   const haCameras = useMemo(
     () =>
@@ -66,6 +75,7 @@ export default function CamerasPage() {
         snapshotUrl: `/api/tapo-cameras/${c.id}/snapshot`,
         streamUrl: `/api/tapo-cameras/${c.id}/stream`,
         source: "tapo" as const,
+        tapoId: c.id,
       })),
     ],
     [haCameras, entityArea, tapoCameras],
@@ -116,14 +126,24 @@ export default function CamerasPage() {
       )}
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
-        {filtered.map((cam) => (
-          <CameraTile
-            key={cam.key}
-            name={cam.name}
-            snapshotUrl={cam.snapshotUrl}
-            onClick={() => setExpandedKey(cam.key)}
-          />
-        ))}
+        {filtered.map((cam) =>
+          cam.source === "tapo" && cam.tapoId ? (
+            <TapoCameraTile
+              key={cam.key}
+              cameraId={cam.tapoId}
+              name={cam.name}
+              snapshotUrl={cam.snapshotUrl}
+              onClick={() => setExpandedKey(cam.key)}
+            />
+          ) : (
+            <CameraTile
+              key={cam.key}
+              name={cam.name}
+              snapshotUrl={cam.snapshotUrl}
+              onClick={() => setExpandedKey(cam.key)}
+            />
+          ),
+        )}
       </div>
 
       {expanded && (

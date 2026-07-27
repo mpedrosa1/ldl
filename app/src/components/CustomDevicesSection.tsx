@@ -232,7 +232,7 @@ export function CustomDevicesSection() {
     >
       <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 6 }}>Dispositivos</div>
       <div style={{ fontSize: 12, color: TEXT_MUTED_3, marginBottom: 16 }}>
-        Monte os cards que aparecem na página Dispositivos: dê um nome, escolha um ícone e junte
+        Monte os cards que aparecem na página Cômodos: dê um nome, escolha um ícone e junte
         uma ou mais entidades reais do Home Assistant (ex: o switch, o sensor de temperatura e o
         modo de um ar-condicionado, tudo num card só).
       </div>
