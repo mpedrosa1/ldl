@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useDevicesByArea } from "@/hooks/useDevicesByArea";
 import { useHaEntities } from "@/hooks/useHaEntities";
 import { useFloorPlan } from "@/hooks/useFloorPlan";
@@ -9,7 +10,7 @@ import { FloorPlanSvgView } from "@/components/floorplan/FloorPlanSvgView";
 import { EnergyPanel } from "@/components/EnergyPanel";
 import { ActivityLog } from "@/components/ActivityLog";
 import { ConnectionBadge } from "@/components/ConnectionBadge";
-import { CARD_BG, TEXT_MUTED_2 } from "@/lib/theme";
+import { ACCENT, CARD_BG, TEXT_MUTED_2 } from "@/lib/theme";
 
 export default function InicioPage() {
   const { status, allDevices } = useDevicesByArea();
@@ -76,7 +77,23 @@ export default function InicioPage() {
           marginBottom: 24,
         }}
       >
-        <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 16 }}>Planta baixa</div>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 12,
+            marginBottom: 16,
+          }}
+        >
+          <div style={{ fontSize: 16, fontWeight: 600 }}>Planta baixa</div>
+          <Link
+            href="/planta-baixa/tela-cheia"
+            style={{ fontSize: 12, color: ACCENT, textDecoration: "none" }}
+          >
+            Abrir em tela cheia
+          </Link>
+        </div>
         {!loaded ? (
           <div style={{ fontSize: 13, color: TEXT_MUTED_2 }}>Carregando planta baixa...</div>
         ) : doc.walls.length === 0 &&
@@ -88,19 +105,11 @@ export default function InicioPage() {
             portas, janelas e posicionar os dispositivos.
           </div>
         ) : (
-          <div style={{ height: 420 }}>
-            <FloorPlanSvgView doc={doc} entities={entities} />
-          </div>
+          <FloorPlanSvgView doc={doc} entities={entities} />
         )}
       </div>
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1.3fr 1fr",
-          gap: 20,
-        }}
-      >
+      <div className="ldl-grid-2" style={{ gridTemplateColumns: "1.3fr 1fr" }}>
         <EnergyPanel entities={entities} />
         <ActivityLog entries={logEntries} />
       </div>

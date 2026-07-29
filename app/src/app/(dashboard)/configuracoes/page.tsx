@@ -13,12 +13,18 @@ function SettingsCard({
   stats,
   href,
   cta,
+  /** Ferramentas que não fazem sentido no celular escondem só o botão — o
+   * card continua explicando o que é. */
+  desktopOnly = false,
+  phoneNote,
 }: {
   title: string;
   description: string;
   stats?: string;
   href: string;
   cta: string;
+  desktopOnly?: boolean;
+  phoneNote?: string;
 }) {
   return (
     <div
@@ -34,6 +40,7 @@ function SettingsCard({
       {stats && <div style={{ fontSize: 12, color: TEXT_MUTED_3, marginBottom: 16 }}>{stats}</div>}
       <Link
         href={href}
+        className={desktopOnly ? "ldl-hide-phone" : undefined}
         style={{
           display: "inline-block",
           background: ACCENT,
@@ -47,6 +54,11 @@ function SettingsCard({
       >
         {cta}
       </Link>
+      {desktopOnly && phoneNote && (
+        <div className="ldl-only-phone" style={{ fontSize: 12, color: TEXT_MUTED_3 }}>
+          {phoneNote}
+        </div>
+      )}
     </div>
   );
 }
@@ -72,6 +84,8 @@ export default function ConfiguracoesPage() {
           }
           href="/planta-baixa"
           cta="Abrir editor de planta baixa"
+          desktopOnly
+          phoneNote="Desenhar a planta exige precisão de mouse — abra o LDL num computador ou tablet para editar. Aqui no celular ela continua visível na página Início."
         />
 
         <SettingsCard

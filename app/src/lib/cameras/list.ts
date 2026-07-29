@@ -36,6 +36,32 @@ export function visibleHaCameraIds(customDevices: CustomDevice[]): Set<string> {
   return ids;
 }
 
+/** URLs de mídia a partir da chave (`tapo:<id>` / `ha:<entity_id>`). As duas
+ * fontes têm proxies diferentes, e quem só tem a chave precisa disto. */
+export function cameraMedia(key: string): {
+  source: "ha" | "tapo";
+  snapshotUrl: string;
+  streamUrl: string;
+} | null {
+  if (key.startsWith("tapo:")) {
+    const id = key.slice("tapo:".length);
+    return {
+      source: "tapo",
+      snapshotUrl: `/api/tapo-cameras/${id}/snapshot`,
+      streamUrl: `/api/tapo-cameras/${id}/stream`,
+    };
+  }
+  if (key.startsWith("ha:")) {
+    const entityId = key.slice("ha:".length);
+    return {
+      source: "ha",
+      snapshotUrl: `/api/ha/camera/${entityId}/snapshot`,
+      streamUrl: `/api/ha/camera/${entityId}/stream`,
+    };
+  }
+  return null;
+}
+
 export function cameraOptions(
   customDevices: CustomDevice[],
   entities: HassEntity[],

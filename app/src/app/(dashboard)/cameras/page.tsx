@@ -125,7 +125,7 @@ function CamerasView() {
         </div>
       )}
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
+      <div className="ldl-grid-2" style={{ gridTemplateColumns: "1fr 1fr" }}>
         {filtered.map((cam) =>
           cam.source === "tapo" && cam.tapoId ? (
             <TapoCameraTile
@@ -177,7 +177,9 @@ function CamerasView() {
               <img
                 src={expanded.streamUrl}
                 alt={expanded.name}
-                style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                // Mesmo motivo do player Tapo: cortar para preencher comeria a
+                // data e o nome que a câmera desenha nas bordas do quadro.
+                style={{ width: "100%", height: "100%", objectFit: "contain", background: "black" }}
               />
             )}
             <div

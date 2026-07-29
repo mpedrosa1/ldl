@@ -1,6 +1,6 @@
 import { Readable } from "node:stream";
 import { getCameraFull } from "@/lib/tapo/store";
-import { buildRtspUrl, spawnFmp4Stream } from "@/lib/tapo/ffmpeg";
+import { buildRtspUrl, redactRtspCredentials, spawnFmp4Stream } from "@/lib/tapo/ffmpeg";
 
 export const dynamic = "force-dynamic";
 
@@ -29,7 +29,9 @@ export async function GET(
   });
   proc.on("close", (code) => {
     if (code !== 0 && code !== null) {
-      console.error(`[tapo-cameras/${id}/stream] ffmpeg exited with ${code}: ${stderr.slice(-500)}`);
+      console.error(
+        `[tapo-cameras/${id}/stream] ffmpeg exited with ${code}: ${redactRtspCredentials(stderr.slice(-500))}`,
+      );
     }
   });
 

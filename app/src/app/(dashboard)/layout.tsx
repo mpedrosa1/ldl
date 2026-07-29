@@ -8,28 +8,11 @@ export default function DashboardLayout({
 }) {
   return (
     <div
-      style={{
-        display: "flex",
-        height: "100vh",
-        width: "100%",
-        background: BG,
-        color: TEXT,
-        fontFamily: FONT_FAMILY,
-        overflow: "hidden",
-        boxSizing: "border-box",
-      }}
+      className="ldl-shell"
+      style={{ background: BG, color: TEXT, fontFamily: FONT_FAMILY }}
     >
       <Sidebar />
-      <div
-        style={{
-          flex: 1,
-          overflowY: "auto",
-          padding: "32px 40px",
-          boxSizing: "border-box",
-        }}
-      >
-        {children}
-      </div>
+      <div className="ldl-main">{children}</div>
     </div>
   );
 }

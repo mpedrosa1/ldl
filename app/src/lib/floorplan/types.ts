@@ -49,6 +49,12 @@ export interface PlacedDevice {
   /** Dispositivo criado em Configurações → Dispositivos (o mesmo que aparece na
    * página Cômodos). É o vínculo usado hoje. */
   deviceId?: string;
+  /** Qual entidade do dispositivo o clique liga/desliga. Um dispositivo composto
+   * pode ter dezenas de entidades (uma impressora 3D tem 22) — sem escolher,
+   * não dá para saber o que acionar. */
+  controlEntityId?: string;
+  /** Entidades exibidas ao passar o mouse sobre o ícone. */
+  infoEntityIds?: string[];
   /** Câmera da página Câmeras, no formato `tapo:<id>` ou `ha:<entity_id>`.
    * Câmeras não são dispositivos compostos — as Tapo nem entidade do HA têm —,
    * por isso têm um vínculo próprio. */

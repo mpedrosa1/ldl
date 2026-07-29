@@ -60,7 +60,15 @@ function ExitFullscreenIcon() {
  * volume, qualidade (HD/SD) e tela cheia. Sem play/pause: o stream é sempre
  * "ao vivo", pausar não faz sentido conceitual e a barra nativa do navegador
  * traria botões desnecessários para esse caso. */
-export function TapoVideoPlayer({ src }: { src: string }) {
+export function TapoVideoPlayer({
+  src,
+  /** Numa janelinha pequena a barra de controles cobre boa parte da imagem —
+   * aí ela só aparece com o mouse em cima. No modal grande fica sempre visível. */
+  controlsOnHover = false,
+}: {
+  src: string;
+  controlsOnHover?: boolean;
+}) {
   const containerRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const [muted, setMuted] = useState(false);
@@ -118,15 +126,23 @@ export function TapoVideoPlayer({ src }: { src: string }) {
   }
 
   return (
-    <div ref={containerRef} style={{ position: "relative", width: "100%", height: "100%" }}>
+    <div
+      ref={containerRef}
+      className={controlsOnHover ? "ldl-video" : undefined}
+      style={{ position: "relative", width: "100%", height: "100%" }}
+    >
       <video
         ref={videoRef}
         key={videoSrc}
         src={videoSrc}
         playsInline
-        style={{ width: "100%", height: "100%", objectFit: "cover", background: "black" }}
+        // `contain` e não `cover`: as câmeras desenham data e nome nas bordas
+        // do quadro, e cortar para preencher come justamente essas informações.
+        style={{ width: "100%", height: "100%", objectFit: "contain", background: "black" }}
       />
       <div
+        data-no-drag
+        className={controlsOnHover ? "ldl-video-controls" : undefined}
         onClick={(e) => e.stopPropagation()}
         style={{
           position: "absolute",

@@ -10,6 +10,15 @@ export function buildRtspUrl(camera: Pick<TapoCamera, "host" | "username" | "pas
   return `rtsp://${auth}@${camera.host}:554/${camera.streamPath}`;
 }
 
+/**
+ * O ffmpeg repete a URL RTSP inteira nas mensagens de erro — e ela carrega
+ * usuário e senha da câmera. Sem isto, a credencial acaba gravada em texto
+ * puro no `docker logs`.
+ */
+export function redactRtspCredentials(text: string): string {
+  return text.replace(/rtsp:\/\/[^@\s]*@/g, "rtsp://<credenciais-ocultas>@");
+}
+
 /** Grabs a single JPEG frame from an RTSP stream via ffmpeg (no persistent process). */
 export function captureSnapshot(rtspUrl: string): Promise<Buffer> {
   return new Promise((resolve, reject) => {
@@ -44,7 +53,7 @@ export function captureSnapshot(rtspUrl: string): Promise<Buffer> {
       if (code === 0 && chunks.length > 0) {
         resolve(Buffer.concat(chunks));
       } else {
-        reject(new Error(`ffmpeg saiu com código ${code}: ${stderr.slice(-500)}`));
+        reject(new Error(`ffmpeg saiu com código ${code}: ${redactRtspCredentials(stderr.slice(-500))}`));
       }
     });
   });

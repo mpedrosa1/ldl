@@ -92,25 +92,62 @@ export interface Bounds {
 
 const FALLBACK_BOUNDS: Bounds = { minX: 0, minY: 0, width: 400, height: 300 };
 
-/** Tight bounding box (in cm, with padding) around everything drawn on a floor plan — used to size a static SVG view without empty space. */
-export function computeDocBounds(doc: FloorPlanDoc, paddingCm = 40): Bounds {
+/** Espaço abaixo do ícone onde o rótulo do dispositivo é desenhado (ver
+ * FloorPlanSvgView), para o texto não ficar cortado na borda. */
+const DEVICE_LABEL_ROOM_CM = 26;
+
+/**
+ * Tight bounding box (in cm, with padding) around everything drawn on a floor
+ * plan — used to size a static SVG view without empty space.
+ *
+ * `includeLabels` reserva o espaço do rótulo dos dispositivos. Fica desligado
+ * quando o que se quer é o centro geométrico (ver rotateDoc): essa folga só
+ * existe para baixo e não gira junto com a planta, então distorceria o centro.
+ */
+export function computeDocBounds(
+  doc: FloorPlanDoc,
+  paddingCm = 10,
+  includeLabels = true,
+): Bounds {
   const xs: number[] = [];
   const ys: number[] = [];
 
-  const addBox = (cx: number, cy: number, w: number, h: number) => {
-    const r = Math.hypot(w, h) / 2; // rotation-agnostic radius so rotated items stay in frame
-    xs.push(cx - r, cx + r);
-    ys.push(cy - r, cy + r);
+  /**
+   * Caixa exata de um item girado: os quatro cantos, rotacionados. A versão
+   * antiga usava o raio do círculo circunscrito, que nunca corta nada mas
+   * inflava muito o quadro — num piso de 400×300 sobravam 50cm de cada lado e
+   * 100cm em cima e embaixo, só de vazio.
+   */
+  const addBox = (cx: number, cy: number, w: number, h: number, rotationDeg: number) => {
+    const a = (rotationDeg * Math.PI) / 180;
+    const cos = Math.cos(a);
+    const sin = Math.sin(a);
+    for (const [dx, dy] of [
+      [-w / 2, -h / 2],
+      [w / 2, -h / 2],
+      [w / 2, h / 2],
+      [-w / 2, h / 2],
+    ]) {
+      xs.push(cx + dx * cos - dy * sin);
+      ys.push(cy + dx * sin + dy * cos);
+    }
   };
 
   for (const wall of doc.walls) {
-    xs.push(wall.x1, wall.x2);
-    ys.push(wall.y1, wall.y2);
+    // A espessura é desenhada centrada na linha, então metade dela extrapola
+    // os extremos em qualquer direção.
+    const half = wall.thickness / 2;
+    xs.push(wall.x1 - half, wall.x1 + half, wall.x2 - half, wall.x2 + half);
+    ys.push(wall.y1 - half, wall.y1 + half, wall.y2 - half, wall.y2 + half);
   }
-  for (const floor of doc.floors) addBox(floor.x, floor.y, floor.width, floor.height);
-  for (const item of doc.furniture) addBox(item.x, item.y, item.width, item.height);
+  for (const floor of doc.floors) addBox(floor.x, floor.y, floor.width, floor.height, floor.rotation);
+  for (const item of doc.furniture) addBox(item.x, item.y, item.width, item.height, item.rotation);
   for (const device of doc.devices) {
-    addBox(device.x, device.y, device.width ?? DEFAULT_DEVICE_SIZE, device.height ?? DEFAULT_DEVICE_SIZE);
+    const w = device.width ?? DEFAULT_DEVICE_SIZE;
+    const h = device.height ?? DEFAULT_DEVICE_SIZE;
+    // O ícone gira, mas o rótulo fica sempre embaixo e na horizontal.
+    addBox(device.x, device.y, w, h, device.rotation);
+    if (includeLabels) ys.push(device.y + Math.max(h, 32) / 2 + DEVICE_LABEL_ROOM_CM);
   }
 
   if (xs.length === 0) return FALLBACK_BOUNDS;
@@ -120,6 +157,58 @@ export function computeDocBounds(doc: FloorPlanDoc, paddingCm = 40): Bounds {
   const minY = Math.min(...ys) - paddingCm;
   const maxY = Math.max(...ys) + paddingCm;
   return { minX, minY, width: maxX - minX, height: maxY - minY };
+}
+
+function rotatePoint(
+  x: number,
+  y: number,
+  cx: number,
+  cy: number,
+  radians: number,
+): { x: number; y: number } {
+  const cos = Math.cos(radians);
+  const sin = Math.sin(radians);
+  const dx = x - cx;
+  const dy = y - cy;
+  return { x: cx + dx * cos - dy * sin, y: cy + dx * sin + dy * cos };
+}
+
+/**
+ * Gira a planta inteira em torno do centro do que está desenhado. Serve para
+ * quem desenhou num sentido e depois quer acertar a orientação — refazer tudo
+ * na mão seria inviável.
+ *
+ * Portas e janelas não aparecem aqui de propósito: elas são posicionadas por
+ * (parede, t) e acompanham a parede sozinhas.
+ */
+export function rotateDoc(doc: FloorPlanDoc, degrees: number): FloorPlanDoc {
+  const bounds = computeDocBounds(doc, 0, false);
+  const cx = bounds.minX + bounds.width / 2;
+  const cy = bounds.minY + bounds.height / 2;
+  const radians = (degrees * Math.PI) / 180;
+
+  const spin = (deg: number) => ((deg + degrees) % 360 + 360) % 360;
+
+  return {
+    ...doc,
+    walls: doc.walls.map((wall) => {
+      const a = rotatePoint(wall.x1, wall.y1, cx, cy, radians);
+      const b = rotatePoint(wall.x2, wall.y2, cx, cy, radians);
+      return { ...wall, x1: a.x, y1: a.y, x2: b.x, y2: b.y };
+    }),
+    floors: doc.floors.map((floor) => {
+      const p = rotatePoint(floor.x, floor.y, cx, cy, radians);
+      return { ...floor, x: p.x, y: p.y, rotation: spin(floor.rotation) };
+    }),
+    furniture: doc.furniture.map((item) => {
+      const p = rotatePoint(item.x, item.y, cx, cy, radians);
+      return { ...item, x: p.x, y: p.y, rotation: spin(item.rotation) };
+    }),
+    devices: doc.devices.map((device) => {
+      const p = rotatePoint(device.x, device.y, cx, cy, radians);
+      return { ...device, x: p.x, y: p.y, rotation: spin(device.rotation) };
+    }),
+  };
 }
 
 /** Finds the nearest wall to a point, within maxDistanceCm. */

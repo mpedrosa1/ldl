@@ -43,7 +43,7 @@ export default function PlantaBaixaPage() {
           </Link>
           <div style={{ fontSize: 16, fontWeight: 700 }}>Editor de planta baixa</div>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <div className="ldl-hide-phone" style={{ display: "flex", alignItems: "center", gap: 12 }}>
           {savedAt && <span style={{ fontSize: 12, color: TEXT_MUTED_3 }}>Planta salva</span>}
           <div
             onClick={() => save(doc)}
@@ -63,7 +63,25 @@ export default function PlantaBaixaPage() {
         </div>
       </div>
 
-      <div style={{ flex: 1, minHeight: 0, padding: 16, boxSizing: "border-box" }}>
+      {/* Editar exige precisão de mouse; no celular a página vira um aviso com
+          atalho para a visualização, em vez de um editor inutilizável. */}
+      <div
+        className="ldl-only-phone"
+        style={{ padding: 20, fontSize: 14, color: TEXT_MUTED_3, lineHeight: 1.5 }}
+      >
+        A edição da planta baixa é feita no computador ou tablet — desenhar paredes e posicionar
+        dispositivos pede precisão de mouse.
+        <br />
+        <br />
+        <Link href="/planta-baixa/tela-cheia" style={{ color: ACCENT, textDecoration: "none" }}>
+          Ver a planta em tela cheia →
+        </Link>
+      </div>
+
+      <div
+        className="ldl-hide-phone"
+        style={{ flex: 1, minHeight: 0, padding: 16, boxSizing: "border-box" }}
+      >
         {!loaded ? (
           <div style={{ fontSize: 13, color: TEXT_MUTED_3 }}>Carregando planta baixa...</div>
         ) : (

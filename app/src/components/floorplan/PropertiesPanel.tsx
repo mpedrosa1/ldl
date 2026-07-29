@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import type { HassEntity } from "home-assistant-js-websocket";
 import type {
   Wall,
   Opening,
@@ -15,6 +16,8 @@ import { useHaAreas } from "@/hooks/useHaAreas";
 import { useHaEntities } from "@/hooks/useHaEntities";
 import { useTapoCameras } from "@/hooks/useTapoCameras";
 import { cameraOptions } from "@/lib/cameras/list";
+import { isControllable } from "@/lib/floorplan/deviceBinding";
+import { friendlyName } from "@/lib/ha/devices";
 import { resizeWallLength, wallLength } from "@/lib/floorplan/geometry";
 import { FLOOR_PRESETS } from "@/lib/floorplan/floorPresets";
 import { ACCENT, BORDER, CARD_BG, DANGER, INPUT_BG, TEXT_MUTED_3 } from "@/lib/theme";
@@ -94,6 +97,21 @@ export function PropertiesPanel({
   const cameras = useMemo(
     () => cameraOptions(customDevices, entities, tapoCameras, entityMeta),
     [customDevices, entities, tapoCameras, entityMeta],
+  );
+
+  // Entidades do dispositivo vinculado, na ordem em que o usuário as montou.
+  const selectedDevice = device?.deviceId
+    ? customDevices.find((d) => d.id === device.deviceId)
+    : undefined;
+  const deviceEntities = useMemo(() => {
+    if (!selectedDevice) return [];
+    return selectedDevice.entityIds
+      .map((id) => entities.find((e) => e.entity_id === id))
+      .filter((e): e is HassEntity => e != null);
+  }, [selectedDevice, entities]);
+  const controllableEntities = useMemo(
+    () => deviceEntities.filter((e) => isControllable(e.entity_id)),
+    [deviceEntities],
   );
 
   return (
@@ -253,6 +271,9 @@ export function PropertiesPanel({
                   deviceId: isCamera || !value ? undefined : value,
                   cameraKey: isCamera ? value : undefined,
                   entityId: undefined,
+                  // As escolhas abaixo são entidades do dispositivo antigo.
+                  controlEntityId: undefined,
+                  infoEntityIds: undefined,
                 });
               }}
             >
@@ -288,6 +309,92 @@ export function PropertiesPanel({
               </div>
             )}
           </div>
+
+          {selectedDevice && (
+            <>
+              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                <label style={fieldLabel}>O que o clique liga/desliga</label>
+                <select
+                  style={inputStyle}
+                  value={device.controlEntityId ?? ""}
+                  onChange={(e) =>
+                    onUpdateDevice({ controlEntityId: e.target.value || undefined })
+                  }
+                >
+                  <option value="">
+                    {selectedDevice.isSwitch ? "Todas juntas (interruptor)" : "Nada"}
+                  </option>
+                  {controllableEntities.map((entity) => (
+                    <option key={entity.entity_id} value={entity.entity_id}>
+                      {friendlyName(entity)}
+                    </option>
+                  ))}
+                </select>
+                {controllableEntities.length === 0 && (
+                  <div style={{ fontSize: 11, color: TEXT_MUTED_3 }}>
+                    Este dispositivo não tem nenhuma entidade de ligar/desligar.
+                  </div>
+                )}
+              </div>
+
+              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                <label style={fieldLabel}>Mostrar ao passar o mouse</label>
+                <div
+                  style={{
+                    maxHeight: 150,
+                    overflowY: "auto",
+                    border: `1px solid ${BORDER}`,
+                    borderRadius: 6,
+                    padding: "6px 8px",
+                  }}
+                >
+                  {deviceEntities.length === 0 ? (
+                    <div style={{ fontSize: 11, color: TEXT_MUTED_3 }}>Sem entidades.</div>
+                  ) : (
+                    deviceEntities.map((entity) => {
+                      const checked = (device.infoEntityIds ?? []).includes(entity.entity_id);
+                      return (
+                        <label
+                          key={entity.entity_id}
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 6,
+                            fontSize: 12,
+                            padding: "2px 0",
+                            cursor: "pointer",
+                          }}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={(e) => {
+                              const current = device.infoEntityIds ?? [];
+                              const next = e.target.checked
+                                ? [...current, entity.entity_id]
+                                : current.filter((id) => id !== entity.entity_id);
+                              onUpdateDevice({ infoEntityIds: next.length > 0 ? next : undefined });
+                            }}
+                          />
+                          <span
+                            style={{
+                              minWidth: 0,
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                              whiteSpace: "nowrap",
+                            }}
+                          >
+                            {friendlyName(entity)}
+                          </span>
+                        </label>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+            </>
+          )}
+
           <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
             <label style={fieldLabel}>Imagem (opcional, substitui o emoji)</label>
             <IconPicker value={device.imageUrl} onSelect={(url) => onUpdateDevice({ imageUrl: url })} />
