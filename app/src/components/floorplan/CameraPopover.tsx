@@ -112,7 +112,12 @@ export function CameraPopover({
       {!media ? (
         <div style={{ padding: 16, fontSize: 12, color: TEXT_MUTED_2 }}>Câmera não encontrada.</div>
       ) : media.source === "tapo" ? (
-        <TapoVideoPlayer src={media.streamUrl} controlsOnHover />
+        <TapoVideoPlayer
+          src={media.streamUrl}
+          snapshotUrl={media.snapshotUrl}
+          name={name}
+          controlsOnHover
+        />
       ) : (
         // eslint-disable-next-line @next/next/no-img-element -- stream MJPEG multipart, não é asset estático otimizável
         <img

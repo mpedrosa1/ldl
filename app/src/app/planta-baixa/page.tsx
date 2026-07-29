@@ -29,7 +29,8 @@ export default function PlantaBaixaPage() {
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          padding: "12px 20px",
+          // Recuo da área segura do iOS (relevante no iPad, onde o editor roda).
+          padding: "calc(12px + env(safe-area-inset-top)) calc(20px + env(safe-area-inset-right)) 12px calc(20px + env(safe-area-inset-left))",
           borderBottom: `1px solid ${BORDER}`,
           flexShrink: 0,
         }}

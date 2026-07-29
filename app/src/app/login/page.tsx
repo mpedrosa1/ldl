@@ -55,7 +55,7 @@ function LoginForm() {
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        padding: 24,
+        padding: "calc(24px + env(safe-area-inset-top)) calc(24px + env(safe-area-inset-right)) calc(24px + env(safe-area-inset-bottom)) calc(24px + env(safe-area-inset-left))",
         background: BG,
         color: TEXT,
         fontFamily: FONT_FAMILY,

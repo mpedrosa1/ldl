@@ -171,7 +171,11 @@ function CamerasView() {
             }}
           >
             {expanded.source === "tapo" ? (
-              <TapoVideoPlayer src={expanded.streamUrl} />
+              <TapoVideoPlayer
+                src={expanded.streamUrl}
+                snapshotUrl={expanded.snapshotUrl}
+                name={expanded.name}
+              />
             ) : (
               // eslint-disable-next-line @next/next/no-img-element -- MJPEG multipart stream, not an optimizable static asset
               <img

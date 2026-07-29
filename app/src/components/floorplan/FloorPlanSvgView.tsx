@@ -130,8 +130,9 @@ export function FloorPlanSvgView({
     if (binding.cameraKey) {
       // Abre o ao vivo sobre a própria planta: sair para outra página só para
       // dar uma olhada na câmera tira o usuário do contexto.
-      const position = popoverPositionFor(device);
-      if (!position) return;
+      // Sem a matriz do SVG não dá para ancorar no ícone, mas engolir o clique
+      // seria pior: a janelinha abre no canto e o usuário arrasta se quiser.
+      const position = popoverPositionFor(device) ?? { left: 8, top: 8 };
       setOpenCamera({
         key: binding.cameraKey,
         name: binding.name ?? device.label,

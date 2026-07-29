@@ -37,7 +37,9 @@ export default function PlantaBaixaTelaCheiaPage() {
           display: "flex",
           alignItems: "center",
           gap: 16,
-          padding: "12px 20px",
+          // Fora do `(dashboard)`, esta página não herda o recuo do `.ldl-shell`
+          // — instalada no iOS, a barra ficaria por baixo do relógio.
+          padding: "calc(12px + env(safe-area-inset-top)) calc(20px + env(safe-area-inset-right)) 12px calc(20px + env(safe-area-inset-left))",
           borderBottom: `1px solid ${BORDER}`,
           flexShrink: 0,
         }}

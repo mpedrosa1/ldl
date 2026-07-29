@@ -42,13 +42,19 @@ body {
   width: 100%;
   overflow: hidden;
   box-sizing: border-box;
+  /* Instalado no iOS a janela ocupa a tela inteira, inclusive por baixo do
+     relógio e da bateria. Os `env(safe-area-inset-*)` devolvem essas faixas —
+     fora do iPhone/iPad valem 0, então o desktop não muda em nada. Aqui ficam
+     só as laterais (celular deitado); o topo é do `.ldl-main`, que é quem rola. */
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
 }
 
 .ldl-main {
   flex: 1;
   min-width: 0;
   overflow-y: auto;
-  padding: 32px 40px;
+  padding: calc(32px + env(safe-area-inset-top)) 40px 32px;
   box-sizing: border-box;
 }
 
@@ -151,7 +157,7 @@ body {
   }
 
   .ldl-main {
-    padding: 24px 20px;
+    padding: calc(24px + env(safe-area-inset-top)) 20px 24px;
   }
 }
 
@@ -173,7 +179,7 @@ body {
 
   .ldl-main {
     /* O padding de baixo reserva o espaço da barra fixa. */
-    padding: 16px 14px 88px;
+    padding: calc(16px + env(safe-area-inset-top)) 14px 88px;
   }
 
   .ldl-sidebar {
@@ -187,6 +193,9 @@ body {
     align-items: center;
     padding: 6px 8px;
     padding-bottom: calc(6px + env(safe-area-inset-bottom));
+    /* A barra é `fixed`, então o recuo lateral do `.ldl-shell` não a alcança. */
+    padding-left: calc(8px + env(safe-area-inset-left));
+    padding-right: calc(8px + env(safe-area-inset-right));
     border-right: none !important;
     border-top: 1px solid oklch(0.36 0.016 50);
     z-index: 20;
@@ -283,6 +292,15 @@ body {
 .ldl-video:focus-within .ldl-video-controls {
   opacity: 1;
   pointer-events: auto;
+}
+
+/* Numa tela de toque não existe "passar o mouse por cima": deixados escondidos,
+   os controles ficariam inalcançáveis no celular e no tablet. */
+@media (hover: none) {
+  .ldl-video-controls {
+    opacity: 1;
+    pointer-events: auto;
+  }
 }
 
 /* Chips clicáveis dentro dos blocos (presets de branco). */

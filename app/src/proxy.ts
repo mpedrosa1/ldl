@@ -21,6 +21,9 @@ const PUBLIC_PATHS = new Set([
   "/sw.js",
   "/offline.html",
   "/favicon.ico",
+  // A logo é da própria tela de login: bloqueada, a única página que responde
+  // deslogado aparecia com o ícone de imagem quebrada.
+  "/logo.png",
 ]);
 
 function isPublic(pathname: string): boolean {
