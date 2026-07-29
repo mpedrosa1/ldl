@@ -5,6 +5,7 @@ import { useFloorPlan } from "@/hooks/useFloorPlan";
 import { useTapoCameras } from "@/hooks/useTapoCameras";
 import { useCustomDevices } from "@/hooks/useCustomDevices";
 import { useAutomations } from "@/hooks/useAutomations";
+import { AccessCard } from "@/components/AccessCard";
 import { ACCENT, BORDER, CARD_BG, TEXT_MUTED_3 } from "@/lib/theme";
 
 function SettingsCard({
@@ -74,6 +75,8 @@ export default function ConfiguracoesPage() {
       <div style={{ fontSize: 26, fontWeight: 700, marginBottom: 20 }}>Configurações</div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+        <AccessCard />
+
         <SettingsCard
           title="Planta baixa"
           description="Desenhe as paredes da sua casa, marque portas e janelas, e posicione ícones de dispositivos (TV, projetor, lâmpada, ar-condicionado, sensores...), cada um podendo ser vinculado a uma entidade real do Home Assistant. O editor abre numa página própria, com mais espaço para desenhar."

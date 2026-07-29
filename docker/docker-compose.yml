@@ -21,3 +21,4 @@ services:
       - TZ=${TZ:-America/Sao_Paulo}
       - HA_URL=${HA_URL}
       - HA_TOKEN=${HA_TOKEN}
+      - APP_PASSWORD=${APP_PASSWORD}
